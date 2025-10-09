@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galaxy Shape Particle System with Image</title>
+
+  <!-- SEO / Indexación -->
+  <meta name="description" content="Sistema de partículas en forma de galaxia realizado con Three.js. Interactivo, rotación por arrastre, zoom por rueda/pinch y sprite central." />
+  <meta name="keywords" content="three.js, galaxia, partículas, WebGL, visualización, javascript, interactive" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://example.com/galaxy-particles.html" /> <!-- cambia a tu URL real -->
+
+  <!-- Open Graph (mejora cuando compartes en redes) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Galaxy Shape Particle System with Image" />
+  <meta property="og:description" content="Sistema de partículas en forma de galaxia con Three.js. Mueve con el ratón, haz pinch para hacer zoom y disfruta del sprite central." />
+  <meta property="og:image" content="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR7IFevOeApyNCDFJ9cgp5PMm1eO2rjC34_QPFG-9O5Qw&s=10" />
+  <meta property="og:url" content="https://example.com/galaxy-particles.html" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Galaxy Shape Particle System with Image" />
+  <meta name="twitter:description" content="Sistema de partículas en forma de galaxia con Three.js. Interactivo y optimizado." />
+  <meta name="twitter:image" content="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR7IFevOeApyNCDFJ9cgp5PMm1eO2rjC34_QPFG-9O5Qw&s=10" />
+
+  <!-- Theme color for some browsers -->
+  <meta name="theme-color" content="#000000" />
+
+  <!-- JSON-LD (structured data) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Galaxy Shape Particle System with Image",
+    "url": "https://example.com/galaxy-particles.html",
+    "description": "Sistema de partículas en forma de galaxia realizado con Three.js. Interactivo y optimizado.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "TuNombre / TuSitio",
+      "url": "https://example.com"
+    }
+  }
+  </script>
+
+  <style>
+    html, body { height: 100%; margin: 0; background: #000; color: #fff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    header { position: absolute; z-index: 20; left: 16px; top: 12px; pointer-events: none; }
+    header h1 { margin: 0; font-size: 16px; font-weight: 600; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+    main { width: 100vw; height: 100vh; display: block; }
+    canvas { display: block; width: 100%; height: 100%; }
+    /* Accessibility: fallback for no-js */
+    noscript { color: #ddd; padding: 12px; display:block; background: rgba(0,0,0,0.5); position: absolute; z-index: 30; left: 0; right:0; text-align:center }
+  </style>
+</head>
+<body>
+  <header aria-hidden="false">
+    <h1>Galaxy Shape Particle System</h1>
+  </header>
+
+  <main id="main-content" role="main" aria-label="Interacción con la galaxia 3D">
+    <!-- Three.js va a crear un canvas y lo añadirá al body -->
+    <noscript>
+      Para ver esta visualización necesitas habilitar JavaScript en tu navegador.
+    </noscript>
+  </main>
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Script principal -->
+  <script>
+  // --- Escena básica ---
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  document.body.appendChild(renderer.domElement);
+
+  // --- Parámetros (mantengo radius = 105 y camera.z = 16) ---
+  const numParticles = 30000;
+  const radius = 105;
+  const particleSize = 0.005;
+  const spiralArms = 3;
+  const armSpread = 0.5;
+  const colorSet = [
+    new THREE.Color(0x4e0bd4),
+    new THREE.Color(0x111196),
+    new THREE.Color(0xa607a3),
+    new THREE.Color(0xa6074e),
+    new THREE.Color(0x00aaff),
+    new THREE.Color(0xffffff),
+    new THREE.Color(0xffffff),
+    new THREE.Color(0xdaba00)
+  ];
+
+  // --- Geometry / atributos ---
+  const geometry = new THREE.BufferGeometry();
+  // Para performance es mejor Float32Array cuando sabemos el tamaño
+  const positions = new Float32Array(numParticles * 3);
+  const colors = new Float32Array(numParticles * 3);
+  const initialY = new Float32Array(numParticles);
+
+  for (let i = 0; i < numParticles; i++) {
+    const arm = i % spiralArms;
+    const angle = (i / numParticles) * Math.PI * 2 * spiralArms;
+    const distance = Math.random() * radius;
+    const spread = Math.random() * armSpread - armSpread / 2;
+    const x = Math.cos(angle + arm * (Math.PI * 2 / spiralArms)) * distance + spread;
+    const y = (Math.random() - 0.5) * 40;
+    const z = Math.sin(angle + arm * (Math.PI * 2 / spiralArms)) * distance + spread;
+
+    positions[i * 3 + 0] = x;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = z;
+
+    initialY[i] = y;
+
+    const colorIndex = Math.floor((angle / (Math.PI * 2)) * colorSet.length) % colorSet.length;
+    const baseColor = colorSet[colorIndex];
+    const blendedColor = baseColor.clone().lerp(new THREE.Color(0x4e0bd4), distance / radius);
+
+    colors[i * 3 + 0] = blendedColor.r;
+    colors[i * 3 + 1] = blendedColor.g;
+    colors[i * 3 + 2] = blendedColor.b;
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  // --- Material y Points ---
+  const material = new THREE.PointsMaterial({
+    size: particleSize,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.8,
+    depthWrite: false
+  });
+
+  const particleSystem = new THREE.Points(geometry, material);
+  scene.add(particleSystem);
+
+  // --- Cámara (según tu petición) ---
+  camera.position.z = 16;
+
+  // --- Interacción (ratón y touch) ---
+  let isMouseDown = false;
+  let lastMouseX = 0, lastMouseY = 0;
+  let targetRotationX = 0, targetRotationY = 0;
+  let currentRotationX = 0, currentRotationY = 0;
+  const lerpFactor = 0.04;
+
+  document.addEventListener('mousedown', e => {
+    isMouseDown = true;
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+  });
+  document.addEventListener('mouseup', () => isMouseDown = false);
+  document.addEventListener('mousemove', e => {
+    if (isMouseDown) {
+      const dx = e.clientX - lastMouseX;
+      const dy = e.clientY - lastMouseY;
+      targetRotationY += dx * 0.005;
+      targetRotationX += dy * 0.005;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    }
+  });
+
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      isMouseDown = true;
+      lastMouseX = e.touches[0].clientX;
+      lastMouseY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => isMouseDown = false);
+  document.addEventListener('touchmove', e => {
+    if (isMouseDown && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - lastMouseX;
+      const dy = e.touches[0].clientY - lastMouseY;
+      targetRotationY += dx * 0.005;
+      targetRotationX += dy * 0.005;
+      lastMouseX = e.touches[0].clientX;
+      lastMouseY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  // --- Sprite central (imagen) ---
+  const textureLoader = new THREE.TextureLoader();
+  textureLoader.setCrossOrigin('anonymous');
+  textureLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR7IFevOeApyNCDFJ9cgp5PMm1eO2rjC34_QPFG-9O5Qw&s=10', texture => {
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(0.1, 0.1, 1);
+    sprite.position.set(0, 0, 0);
+    scene.add(sprite);
+
+    let time = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // escala del sprite según distancia de la cámara
+      const distance = camera.position.z;
+      const minScale = 0.1;
+      const maxScale = 0.7;
+      const scaleFactor = THREE.MathUtils.mapLinear(distance, 5, 1, minScale, maxScale);
+      const clampedScale = THREE.MathUtils.clamp(scaleFactor, minScale, maxScale);
+      sprite.scale.set(clampedScale, clampedScale, 1);
+
+      // rotación suave del sistema de partículas
+      currentRotationX = THREE.MathUtils.lerp(currentRotationX, targetRotationX, lerpFactor);
+      currentRotationY = THREE.MathUtils.lerp(currentRotationY, targetRotationY, lerpFactor);
+      particleSystem.rotation.x = currentRotationX;
+      particleSystem.rotation.y = currentRotationY;
+
+      // mantener sprite orientado
+      sprite.quaternion.copy(camera.quaternion);
+
+      // wobble vertical de partículas
+      const pos = geometry.attributes.position.array;
+      time += 0.0075;
+      for (let i = 0; i < numParticles; i++) {
+        pos[i * 3 + 1] = initialY[i] + Math.sin(time + i * 0.1) * 0.1;
+      }
+      geometry.attributes.position.needsUpdate = true;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+  }, undefined, err => {
+    console.warn('Error cargando textura:', err);
+    // Si falla carga la animación sin sprite (podrías agregar fallback aquí)
+    // arrancamos una animación simplificada para que la escena no quede estática:
+    let timeNoSprite = 0;
+    function animateFallback() {
+      requestAnimationFrame(animateFallback);
+      currentRotationX = THREE.MathUtils.lerp(currentRotationX, targetRotationX, lerpFactor);
+      currentRotationY = THREE.MathUtils.lerp(currentRotationY, targetRotationY, lerpFactor);
+      particleSystem.rotation.x = currentRotationX;
+      particleSystem.rotation.y = currentRotationY;
+      const pos = geometry.attributes.position.array;
+      timeNoSprite += 0.0075;
+      for (let i = 0; i < numParticles; i++) {
+        pos[i * 3 + 1] = initialY[i] + Math.sin(timeNoSprite + i * 0.1) * 0.1;
+      }
+      geometry.attributes.position.needsUpdate = true;
+      renderer.render(scene, camera);
+    }
+    animateFallback();
+  });
+
+  // --- Luz ---
+  const sunlight = new THREE.DirectionalLight(0xffffff, 2);
+  sunlight.position.set(5, 10, 7);
+  scene.add(sunlight);
+
+  // --- Zoom (rueda + pinch) ---
+  const minCameraZ = 1, maxCameraZ = 25;
+  window.addEventListener('wheel', e => {
+    e.preventDefault();
+    camera.position.z -= e.deltaY * 0.01;
+    camera.position.z = Math.max(minCameraZ, Math.min(maxCameraZ, camera.position.z));
+  }, { passive: false });
+
+  let initialDistance = null;
+  const getDistance = touches => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) initialDistance = getDistance(e.touches);
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length === 2 && initialDistance) {
+      const currentDistance = getDistance(e.touches);
+      const zoomFactor = initialDistance - currentDistance;
+      camera.position.z += zoomFactor * 0.01;
+      camera.position.z = Math.max(minCameraZ, Math.min(maxCameraZ, camera.position.z));
+      initialDistance = currentDistance;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => initialDistance = null);
+
+  // --- Resize ---
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+
+  // --- Accessibility: esquema de teclado para rotar (opcional) ---
+  window.addEventListener('keydown', e => {
+    const step = 0.04;
+    if (e.key === 'ArrowLeft') targetRotationY -= step;
+    if (e.key === 'ArrowRight') targetRotationY += step;
+    if (e.key === 'ArrowUp') targetRotationX -= step;
+    if (e.key === 'ArrowDown') targetRotationX += step;
+  });
+  </script>
+
+  <!-- Overlay de donaciones (corregido y listo) -->
+  <script>
+  window.onload = function() {
+    const style = document.createElement('style');
+    style.textContent = `
+#alertOverlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+#alertBox {
+  background: white;
+  color: #333;
+  padding: 20px 30px;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  min-width: 250px;
+  max-width: 80%;
+  animation: fadeIn 0.3s ease;
+}
+#alertBox h2 { margin-top: 0; }
+#alertButton {
+  margin-top: 15px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: 0.2s;
+}
+#alertButton:hover { background: #45a049; }
+#alertMessage a {
+  color: #007BFF;
+  text-decoration: none;
+  font-weight: bold;
+}
+#alertMessage a:hover { text-decoration: underline; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+    `;
+    document.head.appendChild(style);
+
+    const overlay = document.createElement('div');
+    overlay.id = 'alertOverlay';
+
+    const box = document.createElement('div');
+    box.id = 'alertBox';
+
+    const title = document.createElement('h2');
+    title.id = 'alertTitle';
+
+    const message = document.createElement('p');
+    message.id = 'alertMessage';
+
+    const button = document.createElement('button');
+    button.id = 'alertButton';
+    button.textContent = 'OK';
+    button.onclick = () => overlay.style.display = 'none';
+
+    box.appendChild(title);
+    box.appendChild(message);
+    box.appendChild(button);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    function customAlert(t, msgHTML) {
+      title.textContent = t;
+      message.innerHTML = msgHTML;
+      overlay.style.display = 'flex';
+    }
+
+    customAlert(
+      '-- donations ---',
+      'si te gustó el código puedes ayudar donando <a href="https://darkamlc.github.io/donacion/" target="_blank" rel="noopener noreferrer">criptomonedas</a>, haz click en el texto azul'
+    );
+  };
+  </script>
+
+</body>
+</html>
