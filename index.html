@@ -208,19 +208,20 @@ const COLOR_SET = [
     geometry.attributes.position.needsUpdate = true;
 
     // Sprite escala con la distancia de la cámara (manteniendo min/max razonables)
-    if (sprite) {
-      const minZ = 1, maxZ = 45;
-      // queremos que cuando la cámara esté MUY cerca (z ~ 1) la sprite sea grande,
-      // y cuando esté retirada (z ~ 25) la sprite sea pequeña.
-      const maxScale = 0.01;
-      const minScale = 0.1;
-      const s = THREE.MathUtils.mapLinear(camera.position.z, minZ, maxZ, maxScale, minScale);
-      const clamped = THREE.MathUtils.clamp(s, minScale, maxScale);
-      sprite.scale.set(clamped, clamped, 1);
-      // mantener sprite orientado hacia la cámara
-      sprite.quaternion.copy(camera.quaternion);
-    }
+  // Sprite se agranda al acercar la cámara (escala inversa a la distancia)
+if (sprite) {
+  const minZ = 1, maxZ = 25; // límites de la cámara
+  const minScale = 0.5;      // tamaño grande cuando estás muy cerca
+  const maxScale = 0.05;     // tamaño pequeño cuando estás lejos
 
+  // Mapeo inverso: al acercarse (z baja), el tamaño aumenta
+  const s = THREE.MathUtils.mapLinear(camera.position.z, minZ, maxZ, minScale, maxScale);
+  const clamped = THREE.MathUtils.clamp(s, maxScale, minScale);
+  sprite.scale.set(clamped, clamped, clamped);
+
+  // Mantener el sprite siempre mirando a la cámara
+  sprite.quaternion.copy(camera.quaternion);
+}
     renderer.render(scene, camera);
   }
   animate();
