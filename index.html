@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Galaxy — radius 105 & camera z 16</title>
+  <title>Galaxy</title>
   <style>
     html, body { height: 100%; margin: 0; background: #000; }
     canvas { display: block; width: 100%; height: 100%; }
@@ -29,6 +29,42 @@ const COLOR_SET = [
   new THREE.Color(0xff0000)  // raíz - rojo
 ];
 
+// función utilitaria: crea un texture circular en canvas
+function makeCircleTexture(size = 128, color = '#ffffff') {
+  const cvs = document.createElement('canvas');
+  cvs.width = cvs.height = size;
+  const cx = cvs.getContext('2d');
+
+  cx.clearRect(0, 0, size, size);
+  cx.beginPath();
+  cx.arc(size/2, size/2, size*0.45, 0, Math.PI*2);
+  cx.closePath();
+
+  cx.fillStyle = color;
+  cx.fill();
+
+  // degradado suave (opcional)
+  cx.globalCompositeOperation = 'destination-out';
+  const g = cx.createRadialGradient(size/2, size/2, size*0.3, size/2, size/2, size*0.5);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.25)');
+  cx.fillStyle = g;
+  cx.fill();
+
+  return new THREE.CanvasTexture(cvs);
+}
+
+// luego, al crear el material de puntos (reemplaza tu PointsMaterial)
+const circleTex = makeCircleTexture(128, '#ffffff');
+const material = new THREE.PointsMaterial({
+  size: PARTICLE_SIZE,
+  vertexColors: true,
+  transparent: true,
+  alphaTest: 0.01, // opcional: recorta píxeles casi transparentes
+  map: circleTex,
+  depthWrite: false,
+  sizeAttenuation: true
+});
 
 
 
